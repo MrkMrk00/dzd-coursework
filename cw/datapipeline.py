@@ -2,7 +2,6 @@ import os
 import pandas as pd
 import sqlite3
 import pprint
-from typing import Any
 
 DB_FILE_NAME = 'database.sqlite'
 CONNECTION: sqlite3.Connection | None = None
@@ -78,11 +77,15 @@ def _load_sql() -> None:
     under_14.to_sql('under_14', con=db, if_exists='replace', index=False)
 
 
-def get_data_sql(force: bool = False) -> list[dict[str, Any]]:
+def get_data(force: bool = False) -> pd.DataFrame:
     if force or not os.path.exists(DB_FILE_NAME):
         _load_sql()
 
     cursor = connection().cursor()
+
+    valid_product_names = [
+        k for k, v in PRODUCT_VARIANTS.items() if 'valid_energy_source' in v and v['valid_energy_source']
+    ]
 
     complete_query = f"""
         SELECT 
@@ -121,17 +124,46 @@ def get_data_sql(force: bool = False) -> list[dict[str, Any]]:
             )
 
             WHERE e.YEAR <= 2018 AND e.YEAR >= 2010
+                AND e.PRODUCT IN ({', '.join(['?' for _ in valid_product_names])})
     """
 
-    result = [ dict(x) for x in cursor.execute(complete_query).fetchall()]
+    result = [ dict(x) for x in cursor.execute(complete_query, valid_product_names).fetchall()]
+    cursor.close()
 
     if os.getenv('DEBUG'):
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(result)
+    
+    df = pd.DataFrame(result)
+    df['MALE_PERCENTAGE'] = _get_male_perc(df)
 
-    cursor.close()
+    bins = [0, 50, 200, 400, df['POPULATION_DENSITY'].max()]
+    labels = ['low', 'mid', 'high', 'very_high']
+    df['DENSITY_CAT'] = pd.cut(df['POPULATION_DENSITY'], bins=bins, labels=labels)
 
-    return result
+    bins = [0, 1_000_000, 10_000_000, 50_000_000, 100_000_000, df['POPULATION'].max()]
+    labels = ['very_low', 'low', 'mid', 'high', 'very_high']
+    df['POPULATION_CAT'] = pd.cut(df['POPULATION'], bins=bins, labels=labels)
+
+    bins = [df['VALUE'].min(), 0, 500, 10_000, 100_000, df['VALUE'].max()]
+    labels = ['negative', 'low', 'mid', 'high', 'very_high']
+    df['VALUE_CAT'] = pd.cut(df['VALUE'], bins=bins, labels=labels)
+
+    df.drop(columns=['POPULATION'], inplace=True)
+    df.drop(columns=['POPULATION_DENSITY'], inplace=True)
+    df.drop(columns=['VALUE'], inplace=True)
+
+    return df
+
+
+def _get_male_perc(df: pd.DataFrame) -> list:
+    male_perc_cat = []
+
+    for _, row in df.iterrows():
+        female_perc = row['FEMALE_PERCENTAGE']
+        male_perc_cat.append(100 - int(female_perc))
+
+    return male_perc_cat
 
 
 def get_electricity_produced() -> pd.DataFrame:
@@ -140,7 +172,7 @@ def get_electricity_produced() -> pd.DataFrame:
     result_exists = cur.execute('SELECT name FROM sqlite_master WHERE type=\'table\' AND name=\'result\'').fetchall()
     cur.close()
     if not result_exists:
-        data = pd.DataFrame(get_data_sql())
+        data = get_data()
         data.to_sql('result', con=connection(), if_exists='replace', index=False)
 
     valid_product_names = [ 
