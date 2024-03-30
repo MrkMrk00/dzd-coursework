@@ -9,33 +9,36 @@ CONNECTION: sqlite3.Connection | None = None
 DATA_DIR = os.path.join(os.getcwd(), 'data')
 
 PRODUCT_VARIANTS = {
-    'Hydro': { 'renewable': True },
-    'Wind': { 'renewable': True },
-    'Solar': { 'renewable': True },
-    'Geothermal': { 'renewable': True },
+    'Hydro': { 'renewable': True, 'valid_energy_source': True },
+    'Wind': { 'renewable': True, 'valid_energy_source': True },
+    'Solar': { 'renewable': True, 'valid_energy_source': True },
+    'Geothermal': { 'renewable': True, 'valid_energy_source': True },
+    'Coal': { 'renewable': False, 'valid_energy_source': True },
+    'Oil': { 'renewable': False, 'valid_energy_source': True },
+    'Natural gas': { 'renewable': False, 'valid_energy_source': True },
+    'Combustible renewables': { 'renewable': True, 'valid_energy_source': True },
+    'Low carbon': { 'renewable': True, 'valid_energy_source': True },
+    'Fossil fuels': {'renewable': False, 'valid_energy_source': True },
+    'Nuclear': { 'renewable': False, 'valid_energy_source': True },
+    'Other renewables': { 'renewable': True, 'valid_energy_source': True },
+    'Other combustible non-renewables': { 'renewable': False, 'valid_energy_source': True },
+    'Others': { 'renewable': None, 'valid_energy_source': True },
+
+    # agregace
+    'Renewables': { 'renewable': True },
+    'Non-renewables': { 'renewable': False },
+
     'Total combustible fuels': { 'renewable': False },
-    'Coal': { 'renewable': False },
-    'Oil': { 'renewable': False },
-    'Natural gas': { 'renewable': False },
-    'Combustible renewables': { 'renewable': True },
     'Net electricity production': { 'renewable': None },
     'Electricity supplied': { 'renewable': None },
     'Used for pumped storage': { 'renewable': None },
     'Distribution losses': { 'renewable': None },
     'Final consumption': { 'renewable': None },
-    'Renewables': { 'renewable': True },
-    'Non-renewables': { 'renewable': False },
-    'Others': { 'renewable': None },
     'Other renewables aggregated': { 'renewable': True },
-    'Low carbon': { 'renewable': True },
-    'Fossil fuels': {'renewable': False },
-    'Other combustible non-renewables': { 'renewable': False },
     'Not specified': { 'renewable': False },
     'Total imports': { 'renewable': None },
     'Total exports': { 'renewable': None },
     'Electricity trade': { 'renewable': None },
-    'Nuclear': { 'renewable': False },
-    'Other renewables': { 'renewable': True },
 }
 
 def connection() -> sqlite3.Connection:
@@ -79,6 +82,11 @@ def get_data_sql(force: bool = False) -> list[dict[str, Any]]:
 
     cursor = connection().cursor()
 
+    ignored_products = [
+        'Renewables', 'Non-renewables',
+        'Total imports', 'Total exports', 'Electricity trade',
+    ]
+
     complete_query = """
         SELECT 
             e.*, 
@@ -111,6 +119,7 @@ def get_data_sql(force: bool = False) -> list[dict[str, Any]]:
             )
 
             WHERE e.YEAR <= 2018 AND e.YEAR >= 2010
+                AND e.PRODUCT NOT IN ('Renewables', 'Non-renewables')
     """
 
     result = [ dict(x) for x in cursor.execute(complete_query).fetchall()]
