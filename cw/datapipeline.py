@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import sqlite3
 import pprint
+from typing import Any
 
 DB_FILE_NAME = 'database.sqlite'
 CONNECTION: sqlite3.Connection | None = None
@@ -72,7 +73,7 @@ def _load_sql() -> None:
     under_14.to_sql('under_14', con=db, if_exists='replace', index=False)
 
 
-def get_data_sql(force: bool = False) -> None:
+def get_data_sql(force: bool = False) -> list[dict[str, Any]]:
     if force or not os.path.exists(DB_FILE_NAME):
         _load_sql()
 
@@ -110,13 +111,14 @@ def get_data_sql(force: bool = False) -> None:
             )
 
             WHERE e.YEAR <= 2018 AND e.YEAR >= 2010
-
-            LIMIT 50
     """
 
+    result = [ dict(x) for x in cursor.execute(complete_query).fetchall()]
 
-    pp = pprint.PrettyPrinter(indent=4)
-    pp.pprint([ dict(x) for x in cursor.execute(complete_query).fetchall()])
+    if os.getenv('DEBUG'):
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(result)
 
     cursor.close()
+    return result
 
