@@ -20,9 +20,11 @@ PRODUCT_VARIANTS = {
     'Low carbon': { 'renewable': True, 'valid_energy_source': True },
     'Fossil fuels': {'renewable': False, 'valid_energy_source': True },
     'Nuclear': { 'renewable': False, 'valid_energy_source': True },
-    'Other renewables': { 'renewable': True, 'valid_energy_source': True },
-    'Other combustible non-renewables': { 'renewable': False, 'valid_energy_source': True },
-    'Others': { 'renewable': None, 'valid_energy_source': True },
+
+    # Jsou validní, ale data z nich jsou k ničemu
+    'Other renewables': { 'renewable': True, 'valid_energy_source': False },
+    'Other combustible non-renewables': { 'renewable': False, 'valid_energy_source': False },
+    'Others': { 'renewable': None, 'valid_energy_source': False },
 
     # agregace
     'Renewables': { 'renewable': True },
@@ -82,14 +84,14 @@ def get_data_sql(force: bool = False) -> list[dict[str, Any]]:
 
     cursor = connection().cursor()
 
-    ignored_products = [
-        'Renewables', 'Non-renewables',
-        'Total imports', 'Total exports', 'Electricity trade',
-    ]
-
-    complete_query = """
+    complete_query = f"""
         SELECT 
-            e.*, 
+            e.COUNTRY,
+            e.YEAR,
+            e.MONTH,
+            e.PRODUCT,
+            e.VALUE,
+
             population.Count as POPULATION,
             female_perc.Count as FEMALE_PERCENTAGE,
             density.Count as POPULATION_DENSITY,
@@ -119,7 +121,6 @@ def get_data_sql(force: bool = False) -> list[dict[str, Any]]:
             )
 
             WHERE e.YEAR <= 2018 AND e.YEAR >= 2010
-                AND e.PRODUCT NOT IN ('Renewables', 'Non-renewables')
     """
 
     result = [ dict(x) for x in cursor.execute(complete_query).fetchall()]
@@ -129,5 +130,42 @@ def get_data_sql(force: bool = False) -> list[dict[str, Any]]:
         pp.pprint(result)
 
     cursor.close()
+
     return result
 
+
+def get_electricity_produced() -> pd.DataFrame:
+    cur = connection().cursor()
+
+    result_exists = cur.execute('SELECT name FROM sqlite_master WHERE type=\'table\' AND name=\'result\'').fetchall()
+    cur.close()
+    if not result_exists:
+        data = pd.DataFrame(get_data_sql())
+        data.to_sql('result', con=connection(), if_exists='replace', index=False)
+
+    valid_product_names = [ 
+        k for k, v 
+            in PRODUCT_VARIANTS.items() 
+            if 'valid_energy_source' in v and v['valid_energy_source'] ]
+
+    placeholders = ', '.join(['?'] * len(valid_product_names))
+
+    query = f"""
+        SELECT COUNTRY, YEAR, PRODUCT, SUM(VALUE) as VALUE,
+            POPULATION,
+            FEMALE_PERCENTAGE,
+            POPULATION_DENSITY,
+            POPULATION_UNDER_14,
+            POPULATION_OVER_65
+        FROM result
+            WHERE PRODUCT IN ({placeholders})
+            GROUP BY COUNTRY, YEAR, PRODUCT
+    """
+
+    cur = connection().cursor()
+    result = cur.execute(query, valid_product_names).fetchall()
+    pprint.pprint([ dict(x) for x in result ], indent=4)
+    cur.close()
+
+    return pd.DataFrame([ dict(x) for x in result])
+    
