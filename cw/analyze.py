@@ -1,10 +1,10 @@
 from .datapipeline import get_data
 
-import pandas as pd
 from cleverminer import cleverminer
 
 def correlate_population_product_types():
     df = get_data(force=True)
+    print(df.columns)
 
     result = cleverminer(
         df=df,
@@ -17,6 +17,9 @@ def correlate_population_product_types():
                 {'name': 'VALUE_CAT', 'type': 'subset', 'minlen': 1, 'maxlen': 1},
                 {'name': 'PRODUCT', 'type': 'subset', 'minlen': 1, 'maxlen': 1},
                 {'name': 'DENSITY_CAT', 'type': 'subset', 'minlen': 1, 'maxlen': 1},
+                {'name': 'FEMALE_PERCENTAGE', 'type': 'subset', 'minlen': 1, 'maxlen': 1},
+                {'name': 'POPULATION_UNDER_14', 'type': 'subset', 'minlen': 1, 'maxlen': 1},
+                {'name': 'POPULATION_OVER_65', 'type': 'subset', 'minlen': 1, 'maxlen': 1},
             ],
             'minlen': 2,
             'maxlen': 4,
