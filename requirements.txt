@@ -2,3 +2,5 @@ pandas
 pandas-cat
 cleverminer
 matplotlib
+fastparquet
+pyarrow

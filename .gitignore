@@ -3,3 +3,7 @@ __pycache__/
 
 database.sqlite
 report/
+.ipynb_checkpoints/
+.vscode
+Database
+data/daily_weather.parquet

@@ -42,6 +42,7 @@ PRODUCT_VARIANTS = {
     'Electricity trade': { 'renewable': None },
 }
 
+
 def connection() -> sqlite3.Connection:
     global CONNECTION
     if CONNECTION is None:
