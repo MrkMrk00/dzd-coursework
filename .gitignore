@@ -5,3 +5,7 @@ report/
 .ipynb_checkpoints/
 .vscode
 Database
+data/daily_weather.parquet
+.lsp_symlink
+.virual_documents
+.virtual_documents
