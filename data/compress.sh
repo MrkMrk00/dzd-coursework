@@ -14,6 +14,8 @@ if ! which parallel > /dev/null 2>&1 ; then
 	exit 1
 fi
 
+CHECKSUM="05f063ffe73827940f97a3705aef4017"
+
 compress() {
 	split --bytes=50M daily_weather.parquet dw-part-
 	FILES=$(ls | grep -E '(.csv)|(dw-part-)')
@@ -29,6 +31,9 @@ decompress() {
 	parallel --lb 'zstd -d -f "./compressed/{}" -o "./{.}"' ::: $FILES
 
 	cat dw-part-* > daily_weather.parquet
+
+	NEW_CHECKSUM=$(md5sum --binary daily_weather.parquet | cut -d' ' -f1)
+	[[ $CHECKSUM == $NEW_CHECKSUM ]] && echo "daily_weather checksum OK" || (echo "daily_weather checksum FAIL"; exit 1)
 }
 
 case "$1" in
