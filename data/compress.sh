@@ -15,7 +15,7 @@ if ! which parallel > /dev/null 2>&1 ; then
 fi
 
 compress() {
-	split --bytes=150M daily_weather.parquet dw-part-
+	split --bytes=50M daily_weather.parquet dw-part-
 	FILES=$(ls | grep -E '(.csv)|(dw-part-)')
 	
 	[[ -d ./compressed ]] || mkdir ./compressed
@@ -26,7 +26,7 @@ compress() {
 decompress() {
 	FILES=$(ls ./compressed)
 
-	parallel --lb 'zstd -d "./compressed/{}" -o "./{.}"' ::: $FILES
+	parallel --lb 'zstd -d -f "./compressed/{}" -o "./{.}"' ::: $FILES
 
 	cat dw-part-* > daily_weather.parquet
 }

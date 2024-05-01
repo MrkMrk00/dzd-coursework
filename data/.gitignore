@@ -1,13 +1,13 @@
-cities.csv
-countries.csv
-daily_weather.parquet
-data_matrix.csv
-electricity.csv
-population_above_age_65_percentage_long.csv
-population_below_age_14_percentage_long.csv
-population_density_long.csv
-population_female_percentage_long.csv
-population_total_long.csv
-pop_worldometer_data.csv
-dw-part-*
+/cities.csv
+/countries.csv
+/daily_weather.parquet
+/data_matrix.csv
+/electricity.csv
+/population_above_age_65_percentage_long.csv
+/population_below_age_14_percentage_long.csv
+/population_density_long.csv
+/population_female_percentage_long.csv
+/population_total_long.csv
+/pop_worldometer_data.csv
+/dw-part-*
 
