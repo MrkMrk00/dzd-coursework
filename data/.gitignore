@@ -10,4 +10,5 @@
 /population_total_long.csv
 /pop_worldometer_data.csv
 /dw-part-*
+/compressed/daily_weather.parquet.zst
 
