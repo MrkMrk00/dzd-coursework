@@ -55,8 +55,6 @@ decompress() {
 
 	parallel --lb 'zstd -d -f "./compressed/{}" -o "./{.}"' ::: $FILES
 
-	cat dw-part-* > daily_weather.parquet
-
 	weather_checksum
 }
 
